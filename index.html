@@ -172,9 +172,9 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
   <div class="panel" id="cfg-panel" style="display:none;">
     <div class="panel-title">⚙️ Configurações</div>
     <div class="form-field" style="margin-bottom:10px;">
-      <label>URL da API (Google Apps Script)</label>
-      <input type="url" id="api-url" placeholder="https://script.google.com/macros/s/.../exec">
-      <p style="font-size:11px; color:#6b7280; margin-top:4px;">Cole aqui a URL gerada ao implantar o Apps Script. A mesma URL deve ser usada em todos os postos.</p>
+      <label>URL da API (SheetDB)</label>
+      <input type="url" id="api-url" placeholder="https://sheetdb.io/api/v1/SEU_ID">
+      <p style="font-size:11px; color:#6b7280; margin-top:4px;">Cole aqui a URL base da sua API do SheetDB (sem "?sheet=..." no final). A mesma URL deve ser usada em todos os postos.</p>
     </div>
     <div class="form-row">
       <div class="form-field"><label>Meta: tempo até exames</label>
@@ -296,7 +296,7 @@ function loadSettings() {
   try { const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) || 'null'); if (s) settings = Object.assign(settings, s); } catch (e) {}
 }
 function saveSettingsLocal() { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }
-function apiUrlOk() { return settings.apiUrl && settings.apiUrl.startsWith('https://script.google.com/'); }
+function apiUrlOk() { return settings.apiUrl && settings.apiUrl.startsWith('https://sheetdb.io/api/'); }
 
 /* ---------- Connection banner ---------- */
 function setConnectionBanner(state, msg) {
@@ -306,27 +306,98 @@ function setConnectionBanner(state, msg) {
   el.innerHTML = '<span class="pulse-dot"></span> ' + msg;
 }
 
-/* ---------- API layer ---------- */
-async function apiCall(action, params) {
+/* ---------- API layer (SheetDB) ---------- */
+function buildUrl(sheetName, pathSegments, extraParams) {
+  const base = settings.apiUrl.replace(/\/$/, '');
+  const segs = (pathSegments || []).map(s => encodeURIComponent(s)).join('/');
+  let full = segs ? base + '/' + segs : base;
+  const params = new URLSearchParams();
+  params.set('sheet', sheetName);
+  if (extraParams) Object.keys(extraParams).forEach(k => params.set(k, extraParams[k]));
+  return full + '?' + params.toString();
+}
+
+async function sheetRequest(method, sheetName, pathSegments, body, extraParams) {
   if (!apiUrlOk()) throw new Error('API não configurada');
-  const url = new URL(settings.apiUrl);
-  url.searchParams.set('action', action);
-  if (params) Object.keys(params).forEach(k => url.searchParams.set(k, params[k]));
-  const res = await fetch(url.toString());
-  const json = await res.json();
-  if (json.error) throw new Error(json.error);
-  return json;
+  const urlStr = buildUrl(sheetName, pathSegments, extraParams);
+  let res;
+  try {
+    res = await fetch(urlStr, {
+      method: method,
+      redirect: 'follow',
+      mode: 'cors',
+      headers: body ? { 'Content-Type': 'application/json' } : undefined,
+      body: body ? JSON.stringify(body) : undefined
+    });
+  } catch (networkErr) {
+    throw new Error('Não foi possível conectar ao SheetDB. Detalhe técnico: ' + networkErr.message);
+  }
+  if (!res.ok) {
+    let detail = '';
+    try { const j = await res.json(); detail = j.message || j.error || ''; } catch (e) {}
+    throw new Error('A API respondeu com erro HTTP ' + res.status + (detail ? ' — ' + detail : ''));
+  }
+  try {
+    return await res.json();
+  } catch (parseErr) {
+    return null;
+  }
+}
+
+/* Conversion helpers: object <-> flat spreadsheet row */
+function casoToRow(c) {
+  return {
+    id: c.id,
+    patientId: c.patientId,
+    age: c.age,
+    sex: c.sex,
+    source: c.source,
+    criteria: c.criteria,
+    tZero: c.tZero,
+    status: c.status,
+    lactateHistory: JSON.stringify(c.lactateHistory || []),
+    exams: c.bundle.exams || '',
+    antibiotic: c.bundle.antibiotic || '',
+    fluid: c.bundle.fluid || '',
+    vasopressor: c.bundle.vasopressor || '',
+    outcome: c.outcome || '',
+    closedAt: c.closedAt || ''
+  };
+}
+function rowToCaso(r) {
+  return {
+    id: r.id,
+    patientId: r.patientId,
+    age: r.age,
+    sex: r.sex,
+    source: r.source,
+    criteria: r.criteria,
+    tZero: Number(r.tZero),
+    status: r.status,
+    lactateHistory: r.lactateHistory ? JSON.parse(r.lactateHistory) : [],
+    bundle: {
+      exams: r.exams ? Number(r.exams) : null,
+      antibiotic: r.antibiotic ? Number(r.antibiotic) : null,
+      fluid: r.fluid ? Number(r.fluid) : null,
+      vasopressor: r.vasopressor ? Number(r.vasopressor) : null
+    },
+    outcome: r.outcome || null,
+    closedAt: r.closedAt ? Number(r.closedAt) : null
+  };
 }
 
 async function loadAll() {
   if (!apiUrlOk()) {
-    setConnectionBanner('error', 'API não configurada — clique em ⚙️ Config e cole a URL do Apps Script para sincronizar entre os postos.');
+    setConnectionBanner('error', 'API não configurada — clique em ⚙️ Config e cole a URL do SheetDB para sincronizar entre os postos.');
     return;
   }
   try {
-    const [casosRes, contatosRes] = await Promise.all([apiCall('listCasos'), apiCall('listContatos')]);
-    cases = casosRes;
-    contacts = contatosRes;
+    const [casosRows, contatosRows] = await Promise.all([
+      sheetRequest('GET', 'Casos', []),
+      sheetRequest('GET', 'Contatos', [])
+    ]);
+    cases = (casosRows || []).filter(r => r.id).map(rowToCaso);
+    contacts = (contatosRows || []).filter(r => r.id);
     setConnectionBanner('ok', 'Conectado · sincronizando automaticamente a cada 15s · ' + new Date().toLocaleTimeString('pt-BR'));
   } catch (e) {
     setConnectionBanner('error', 'Falha ao conectar: ' + e.message);
@@ -335,20 +406,32 @@ async function loadAll() {
 
 async function saveCaso(c) {
   if (!apiUrlOk()) { alert('Configure a URL da API em Config antes de usar.'); return; }
-  try { await apiCall('saveCaso', { data: JSON.stringify(c) }); } catch (e) { alert('Erro ao salvar: ' + e.message); }
+  const row = casoToRow(c);
+  try {
+    const existing = await sheetRequest('GET', 'Casos', ['search'], null, { id: c.id });
+    const found = Array.isArray(existing) && existing.length > 0;
+    if (found) {
+      await sheetRequest('PATCH', 'Casos', ['id', c.id], { data: row });
+    } else {
+      await sheetRequest('POST', 'Casos', [], { data: [row] });
+    }
+  } catch (e) {
+    alert('Erro ao salvar: ' + e.message);
+  }
 }
 async function deleteCasoApi(id) {
   if (!apiUrlOk()) return;
-  try { await apiCall('deleteCaso', { id }); } catch (e) { alert('Erro ao excluir: ' + e.message); }
+  try { await sheetRequest('DELETE', 'Casos', ['id', id]); } catch (e) { alert('Erro ao excluir: ' + e.message); }
 }
 async function saveContatoApi(ct) {
   if (!apiUrlOk()) { alert('Configure a URL da API em Config antes de usar.'); return; }
-  try { await apiCall('saveContato', { data: JSON.stringify(ct) }); } catch (e) { alert('Erro ao salvar contato: ' + e.message); }
+  try { await sheetRequest('POST', 'Contatos', [], { data: [ct] }); } catch (e) { alert('Erro ao salvar contato: ' + e.message); }
 }
 async function deleteContatoApi(id) {
   if (!apiUrlOk()) return;
-  try { await apiCall('deleteContato', { id }); } catch (e) { alert('Erro ao excluir contato: ' + e.message); }
+  try { await sheetRequest('DELETE', 'Contatos', ['id', id]); } catch (e) { alert('Erro ao excluir contato: ' + e.message); }
 }
+
 
 /* ---------- Lactate logic ---------- */
 function nextRelactateDue(c) {
