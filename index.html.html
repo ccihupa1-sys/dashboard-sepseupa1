@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Sepse - UPA</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #e5e7eb; background: #0f1419; padding: 16px; }
+.wrap { max-width: 1100px; margin: 0 auto; }
+
+/* Header */
+.dash-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.2rem; padding-bottom: 1rem; border-bottom: 2px solid #1f2937; }
+.dash-title-block { display: flex; align-items: center; gap: 14px; }
+.dash-logo { width: 44px; height: 44px; border-radius: 10px; background: linear-gradient(135deg, #dc2626, #991b1b); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+.dash-title { font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: -0.3px; }
+.dash-subtitle { font-size: 12px; color: #9ca3af; margin-top: 2px; }
+.clock-now { font-family: 'SF Mono', Consolas, monospace; font-size: 28px; font-weight: 700; color: #ffffff; text-align: right; }
+.clock-date { font-size: 11px; color: #9ca3af; text-align: right; }
+.toolbar { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.btn { font-family: inherit; font-size: 13px; padding: 9px 16px; border-radius: 10px; border: 1px solid #374151; background: #1f2937; color: #e5e7eb; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; font-weight: 600; transition: all 0.15s; }
+.btn:hover { background: #374151; border-color: #4b5563; }
+.btn-primary { background: #dc2626; color: #ffffff; border-color: #dc2626; }
+.btn-primary:hover { background: #b91c1c; }
+.btn-sm { font-size: 12px; padding: 6px 12px; }
+.btn-wa { background: #25D366; color: white; border-color: #25D366; }
+.btn-sms { background: #2563eb; color: white; border-color: #2563eb; }
+
+/* Connection banner */
+.connection-banner { font-size: 12px; font-weight: 600; border-radius: 10px; padding: 10px 16px; margin-bottom: 1rem; border: 1px solid; display: flex; align-items: center; gap: 8px; }
+.connection-banner.ok { background: rgba(34,197,94,0.1); border-color: #22c55e; color: #4ade80; }
+.connection-banner.error { background: rgba(239,68,68,0.1); border-color: #ef4444; color: #f87171; }
+.connection-banner.info { background: rgba(59,130,246,0.1); border-color: #3b82f6; color: #60a5fa; }
+.pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; animation: pulse-dot 2s infinite; }
+
+/* Top urgent alert */
+.top-alert { background: linear-gradient(135deg, #7f1d1d, #450a0a); border: 2px solid #dc2626; border-radius: 14px; padding: 16px 20px; margin-bottom: 1.2rem; animation: pulse-border 1.8s infinite; }
+.top-alert-title { font-weight: 800; font-size: 15px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; color: #fecaca; text-transform: uppercase; letter-spacing: 0.5px; }
+.top-alert-list { font-size: 13px; color: #fee2e2; line-height: 1.6; }
+
+/* Stat cards */
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 1.5rem; }
+.stat-card { background: #1a2332; border: 1px solid #2d3748; border-radius: 14px; padding: 1.1rem; position: relative; overflow: hidden; }
+.stat-card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--accent, #6b7280); }
+.stat-label { font-size: 11px; color: #9ca3af; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+.stat-value { font-size: 30px; font-weight: 800; line-height: 1.1; color: #ffffff; }
+.stat-unit { font-size: 14px; color: #6b7280; font-weight: 500; }
+.stat-meta { font-size: 11px; color: #6b7280; margin-top: 6px; }
+
+/* Section titles */
+.section-title { font-size: 15px; font-weight: 800; margin: 1.6rem 0 0.8rem; color: #ffffff; display: flex; align-items: center; gap: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+.section-count { color: #6b7280; font-weight: 500; text-transform: none; }
+
+/* Case cards */
+.case-card { background: #1a2332; border: 1px solid #2d3748; border-radius: 16px; padding: 16px 18px; margin-bottom: 14px; transition: border-color 0.3s; }
+.case-card.sev-low { border-left: 5px solid #22c55e; }
+.case-card.sev-mid { border-left: 5px solid #f59e0b; }
+.case-card.sev-high { border-left: 5px solid #ef4444; box-shadow: 0 0 0 1px rgba(239,68,68,0.3), 0 4px 20px rgba(239,68,68,0.15); }
+.case-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; gap: 8px; flex-wrap: wrap; }
+.case-id { font-weight: 800; font-size: 16px; color: #ffffff; }
+.case-meta { font-size: 12px; color: #9ca3af; margin-top: 2px; }
+.case-criteria-badge { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 6px; background: #374151; color: #d1d5db; margin-left: 6px; font-weight: 600; }
+
+/* Triple timer row */
+.timers-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+.timer-box { border-radius: 12px; padding: 10px 12px; border: 1px solid; }
+.timer-box-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 700; opacity: 0.85; margin-bottom: 4px; display: flex; align-items: center; gap: 4px; }
+.timer-box-value { font-family: 'SF Mono', Consolas, monospace; font-size: 20px; font-weight: 800; line-height: 1; }
+.timer-box-meta { font-size: 10px; margin-top: 4px; opacity: 0.75; }
+.timer-box.green { background: rgba(34,197,94,0.12); border-color: #22c55e; color: #4ade80; }
+.timer-box.amber { background: rgba(245,158,11,0.12); border-color: #f59e0b; color: #fbbf24; }
+.timer-box.red { background: rgba(239,68,68,0.15); border-color: #ef4444; color: #f87171; animation: pulse-box 1.5s infinite; }
+.timer-box.done { background: rgba(34,197,94,0.18); border-color: #22c55e; color: #4ade80; }
+.timer-box.pending { background: rgba(107,114,128,0.12); border-color: #4b5563; color: #9ca3af; cursor: pointer; }
+.timer-box.pending:hover { border-color: #6b7280; }
+
+/* Lactate banner */
+.lactate-banner { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; margin-bottom: 12px; font-size: 13px; cursor: pointer; border: 1px solid; flex-wrap: wrap; }
+.lactate-banner.ok { background: rgba(59,130,246,0.1); color: #60a5fa; border-color: #3b82f6; cursor: default; }
+.lactate-banner.green { background: rgba(34,197,94,0.12); color: #4ade80; border-color: #22c55e; }
+.lactate-banner.amber { background: rgba(245,158,11,0.12); color: #fbbf24; border-color: #f59e0b; }
+.lactate-banner.red { background: rgba(239,68,68,0.15); color: #f87171; border-color: #ef4444; animation: pulse-box 1.5s infinite; }
+.lactate-info { display: flex; flex-direction: column; gap: 2px; }
+.lactate-info-label { font-size: 11px; opacity: 0.85; }
+.lactate-countdown { font-family: 'SF Mono', Consolas, monospace; font-size: 20px; font-weight: 800; line-height: 1; }
+
+/* Bundle chips (other items) */
+.bundle-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.bundle-chip { font-family: inherit; font-size: 11px; padding: 6px 10px; border-radius: 8px; border: 1px solid #374151; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; background: #111827; color: #9ca3af; font-weight: 600; }
+.bundle-chip.done { background: rgba(34,197,94,0.15); color: #4ade80; border-color: #22c55e; }
+.bundle-chip:hover { border-color: #6b7280; }
+
+.case-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.btn-alert { background: #dc2626; color: #ffffff; border-color: #dc2626; font-weight: 700; animation: pulse-box 1.5s infinite; }
+
+/* Forms */
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.form-field { display: flex; flex-direction: column; gap: 4px; }
+.form-field label { font-size: 12px; color: #9ca3af; font-weight: 600; }
+.form-field input, .form-field select { font-size: 14px; padding: 9px 11px; border-radius: 8px; border: 1px solid #374151; background: #0f1419; color: #e5e7eb; }
+.form-field input::placeholder { color: #4b5563; }
+.add-form, .panel { background: #1a2332; border: 1px solid #2d3748; border-radius: 16px; padding: 1.2rem; margin-bottom: 1rem; }
+.panel-title { font-weight: 800; font-size: 14px; margin-bottom: 12px; color: #ffffff; }
+
+.empty { font-size: 13px; color: #6b7280; padding: 1.4rem; text-align: center; background: #1a2332; border: 1px dashed #374151; border-radius: 14px; }
+.outcome-badge { font-size: 11px; padding: 4px 10px; border-radius: 8px; font-weight: 700; }
+
+.contact-row { display: flex; gap: 8px; align-items: center; padding: 10px 0; border-bottom: 1px solid #2d3748; font-size: 13px; }
+.contact-row:last-child { border-bottom: none; }
+.contact-info { flex: 1; }
+.contact-name { font-weight: 700; color: #ffffff; }
+.contact-meta { font-size: 11px; color: #9ca3af; }
+
+.notify-panel { background: #0f1419; border-radius: 12px; padding: 14px; margin-top: 12px; font-size: 12px; border: 1px solid #2d3748; }
+.notify-msg { background: #1a2332; border: 1px solid #374151; border-radius: 8px; padding: 10px; margin-bottom: 10px; white-space: pre-wrap; font-family: 'SF Mono', Consolas, monospace; font-size: 12px; color: #d1d5db; }
+.notify-contacts { display: flex; flex-direction: column; gap: 8px; }
+.notify-contact { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 10px; background: #1a2332; border-radius: 8px; border: 1px solid #2d3748; flex-wrap: wrap; }
+.notify-contact-actions { display: flex; gap: 4px; }
+
+@keyframes pulse-box { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+@keyframes pulse-border { 0%, 100% { border-color: #dc2626; } 50% { border-color: #f87171; } }
+@keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+@media print {
+  body { background: #fff; color: #000; }
+  .toolbar, .case-actions, .notify-panel, .dash-header .toolbar { display: none !important; }
+}
+@media (max-width: 640px) {
+  .timers-row { grid-template-columns: 1fr; }
+  .clock-now { font-size: 20px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="dash-header">
+    <div class="dash-title-block">
+      <div class="dash-logo">🩸</div>
+      <div>
+        <div class="dash-title">DASHBOARD SEPSE — UPA</div>
+        <div class="dash-subtitle">Monitoramento em tempo real · todos os postos</div>
+      </div>
+    </div>
+    <div>
+      <div class="clock-now" id="clock-now">--:--:--</div>
+      <div class="clock-date" id="clock-date">-- --- ----</div>
+    </div>
+  </div>
+
+  <div class="connection-banner info" id="connection-banner">
+    <span class="pulse-dot"></span> Conectando à planilha compartilhada...
+  </div>
+
+  <div id="top-alert" style="display:none;"></div>
+
+  <div class="panel" id="team-panel" style="display:none;">
+    <div class="panel-title">👥 Contatos da equipe</div>
+    <div id="contacts-list"></div>
+    <div class="form-row" style="margin-top:12px;">
+      <div class="form-field"><label>Nome</label><input type="text" id="ct-name" placeholder="Dra. Ana"></div>
+      <div class="form-field"><label>Função</label><input type="text" id="ct-role" placeholder="Plantonista"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-field"><label>Celular (com DDD)</label><input type="tel" id="ct-phone" placeholder="11999998888"></div>
+      <div class="form-field" style="justify-content:flex-end;"><button class="btn btn-primary" id="ct-add">Adicionar contato</button></div>
+    </div>
+    <p style="font-size:11px; color:#6b7280; margin-top:8px;">Apenas números, com DDD. O código do Brasil (+55) é adicionado automaticamente nos links.</p>
+  </div>
+
+  <div class="panel" id="cfg-panel" style="display:none;">
+    <div class="panel-title">⚙️ Configurações</div>
+    <div class="form-field" style="margin-bottom:10px;">
+      <label>URL da API (Google Apps Script)</label>
+      <input type="url" id="api-url" placeholder="https://script.google.com/macros/s/.../exec">
+      <p style="font-size:11px; color:#6b7280; margin-top:4px;">Cole aqui a URL gerada ao implantar o Apps Script. A mesma URL deve ser usada em todos os postos.</p>
+    </div>
+    <div class="form-row">
+      <div class="form-field"><label>Meta: tempo até exames</label>
+        <select id="exam-target"><option value="30">30 min</option><option value="45">45 min</option><option value="60">60 min</option></select>
+      </div>
+      <div class="form-field"><label>Meta: tempo até ATB</label>
+        <select id="atb-target"><option value="45">45 min</option><option value="60" selected>60 min</option><option value="90">90 min</option></select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-field"><label>Intervalo de recoleta de lactato</label>
+        <select id="interval-select">
+          <option value="2">2 horas (padrão SSC)</option>
+          <option value="3">3 horas</option>
+          <option value="4">4 horas</option>
+        </select>
+      </div>
+      <div class="form-field"><label>Som de alerta</label>
+        <select id="sound-select"><option value="1">Ligado</option><option value="0">Desligado</option></select>
+      </div>
+    </div>
+    <div class="form-field">
+      <label>Webhook para envio automático (opcional)</label>
+      <input type="url" id="webhook-url" placeholder="https://seu-backend.com/sepsis-alert">
+    </div>
+    <div class="form-field" style="flex-direction:row; gap:8px; align-items:center; margin-top:10px;">
+      <input type="checkbox" id="auto-webhook" style="width:auto;">
+      <label for="auto-webhook" style="margin:0; font-weight:400;">Disparar webhook automaticamente quando recoleta de lactato atrasar</label>
+    </div>
+    <button class="btn btn-primary" id="cfg-save" style="margin-top:12px;">Salvar configurações</button>
+  </div>
+
+  <div class="stats-grid" id="stats"></div>
+
+  <div class="dash-header" style="border-bottom:none; margin-bottom: 0.5rem;">
+    <div class="toolbar">
+      <button class="btn btn-primary" id="addBtn">+ Abrir protocolo</button>
+      <button class="btn" id="exportBtn">Exportar CSV</button>
+      <button class="btn" id="refreshBtn">🔄 Atualizar</button>
+    </div>
+    <div class="toolbar">
+      <button class="btn btn-sm" id="notifyBtn">🔔 Notificações</button>
+      <button class="btn btn-sm" id="teamBtn">👥 Equipe</button>
+      <button class="btn btn-sm" id="cfgBtn">⚙️ Config</button>
+    </div>
+  </div>
+
+  <div class="add-form" id="addForm" style="display:none;">
+    <div class="form-row">
+      <div class="form-field"><label>Identificação (iniciais/leito)</label><input type="text" id="f-id" placeholder="Ex: J.M.S. / leito 7"></div>
+      <div class="form-field"><label>Idade</label><input type="number" id="f-age" placeholder="Anos"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-field"><label>Sexo</label><select id="f-sex"><option value="M">M</option><option value="F">F</option></select></div>
+      <div class="form-field"><label>Foco suspeito</label>
+        <select id="f-source">
+          <option>Pulmonar</option><option>Urinário</option><option>Abdominal</option>
+          <option>Pele/partes moles</option><option>SNC</option><option>Indeterminado</option><option>Outro</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-field"><label>Critério de gravidade</label>
+        <select id="f-criteria">
+          <option>qSOFA ≥2</option><option>SIRS + infecção</option><option>Disfunção orgânica</option><option>Choque séptico</option>
+        </select>
+      </div>
+      <div class="form-field"><label>T zero (momento da suspeita)</label><input type="datetime-local" id="f-tzero"></div>
+    </div>
+    <div style="display:flex; gap:8px; margin-top:8px;">
+      <button class="btn btn-primary" id="saveBtn">Abrir protocolo</button>
+      <button class="btn" id="cancelBtn">Cancelar</button>
+    </div>
+  </div>
+
+  <h2 class="section-title">🔴 Protocolos abertos <span class="section-count" id="open-count"></span></h2>
+  <div id="active-list"></div>
+
+  <h2 class="section-title">⚪ Casos fechados recentemente</h2>
+  <div id="closed-list"></div>
+
+</div>
+
+<script>
+const SETTINGS_KEY = 'sepsis_settings_v3';
+let cases = [];
+let contacts = [];
+let settings = { intervalHours: 2, soundOn: true, webhookUrl: '', autoWebhook: false, apiUrl: '', examTargetMin: 45, atbTargetMin: 60 };
+const alertedCases = new Set();
+const notifyOpen = new Set();
+let isSyncing = false;
+
+const BUNDLE_ITEMS = [
+  { key: 'fluid', label: 'Cristaloide 30ml/kg' },
+  { key: 'vasopressor', label: 'Vasopressor' }
+];
+
+function uid() { return 'x_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7); }
+function nowLocal() { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); }
+function fmtTime(ts) { if (!ts) return '—'; return new Date(ts).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }); }
+function fmtHM(ts) { return new Date(ts).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' }); }
+function elapsedMin(ts) { return Math.round((Date.now() - ts) / 60000); }
+function fmtElapsed(min) { const h = Math.floor(min/60); const m = min%60; return h === 0 ? m+'min' : h+'h '+String(m).padStart(2,'0')+'min'; }
+function fmtCountdown(ms) {
+  const abs = Math.abs(ms);
+  const totalSec = Math.floor(abs / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  if (h > 0) return h + 'h' + String(m).padStart(2,'0');
+  if (m >= 5) return m + 'min';
+  return m + ':' + String(s).padStart(2,'0');
+}
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function cleanPhone(p) { let s = String(p).replace(/\D/g, ''); if (s.length === 11 || s.length === 10) s = '55' + s; return s; }
+
+/* ---------- Settings (local) ---------- */
+function loadSettings() {
+  try { const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) || 'null'); if (s) settings = Object.assign(settings, s); } catch (e) {}
+}
+function saveSettingsLocal() { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); }
+function apiUrlOk() { return settings.apiUrl && settings.apiUrl.startsWith('https://script.google.com/'); }
+
+/* ---------- Connection banner ---------- */
+function setConnectionBanner(state, msg) {
+  const el = document.getElementById('connection-banner');
+  if (!el) return;
+  el.className = 'connection-banner ' + state;
+  el.innerHTML = '<span class="pulse-dot"></span> ' + msg;
+}
+
+/* ---------- API layer ---------- */
+async function apiCall(action, params) {
+  if (!apiUrlOk()) throw new Error('API não configurada');
+  const url = new URL(settings.apiUrl);
+  url.searchParams.set('action', action);
+  if (params) Object.keys(params).forEach(k => url.searchParams.set(k, params[k]));
+  const res = await fetch(url.toString());
+  const json = await res.json();
+  if (json.error) throw new Error(json.error);
+  return json;
+}
+
+async function loadAll() {
+  if (!apiUrlOk()) {
+    setConnectionBanner('error', 'API não configurada — clique em ⚙️ Config e cole a URL do Apps Script para sincronizar entre os postos.');
+    return;
+  }
+  try {
+    const [casosRes, contatosRes] = await Promise.all([apiCall('listCasos'), apiCall('listContatos')]);
+    cases = casosRes;
+    contacts = contatosRes;
+    setConnectionBanner('ok', 'Conectado · sincronizando automaticamente a cada 15s · ' + new Date().toLocaleTimeString('pt-BR'));
+  } catch (e) {
+    setConnectionBanner('error', 'Falha ao conectar: ' + e.message);
+  }
+}
+
+async function saveCaso(c) {
+  if (!apiUrlOk()) { alert('Configure a URL da API em Config antes de usar.'); return; }
+  try { await apiCall('saveCaso', { data: JSON.stringify(c) }); } catch (e) { alert('Erro ao salvar: ' + e.message); }
+}
+async function deleteCasoApi(id) {
+  if (!apiUrlOk()) return;
+  try { await apiCall('deleteCaso', { id }); } catch (e) { alert('Erro ao excluir: ' + e.message); }
+}
+async function saveContatoApi(ct) {
+  if (!apiUrlOk()) { alert('Configure a URL da API em Config antes de usar.'); return; }
+  try { await apiCall('saveContato', { data: JSON.stringify(ct) }); } catch (e) { alert('Erro ao salvar contato: ' + e.message); }
+}
+async function deleteContatoApi(id) {
+  if (!apiUrlOk()) return;
+  try { await apiCall('deleteContato', { id }); } catch (e) { alert('Erro ao excluir contato: ' + e.message); }
+}
+
+/* ---------- Lactate logic ---------- */
+function nextRelactateDue(c) {
+  if (!c.lactateHistory || !c.lactateHistory.length) return null;
+  const last = c.lactateHistory[c.lactateHistory.length - 1];
+  if (last.value < 2) return null;
+  return last.time + settings.intervalHours * 3600000;
+}
+
+function buildSmsMsg(c) {
+  const last = c.lactateHistory[c.lactateHistory.length - 1];
+  const due = nextRelactateDue(c);
+  const overdue = Date.now() - due;
+  const status = overdue > 0 ? 'ATRASADA ' + fmtCountdown(overdue) : 'vencendo em ' + fmtCountdown(due - Date.now());
+  return 'UPA Sepse - Recoleta lactato ' + status + ': ' + c.patientId + ', T0 ' + fmtHM(c.tZero) + ', ult ' + last.value + 'mmol/L. Recolher agora.';
+}
+function buildWaMsg(c) {
+  const last = c.lactateHistory[c.lactateHistory.length - 1];
+  const due = nextRelactateDue(c);
+  const overdue = Date.now() - due;
+  const status = overdue > 0 ? 'ATRASADA há ' + fmtCountdown(overdue) : 'vencendo em ' + fmtCountdown(due - Date.now());
+  return '🩸 UPA — Recoleta de lactato\n\nPaciente: ' + c.patientId + '\nIdade/sexo: ' + c.age + 'a · ' + c.sex + '\nFoco: ' + c.source + '\nT zero: ' + fmtTime(c.tZero) + '\nÚltimo lactato: ' + last.value + ' mmol/L às ' + fmtHM(last.time) + '\nStatus: ' + status + '\n\nPor favor, recolher e registrar no painel.';
+}
+
+function playAlert() {
+  if (!settings.soundOn) return;
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [880, 880, 880].forEach((freq, i) => {
+      const osc = ctx.createOscillator(); const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.15, ctx.currentTime + i * 0.3);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + i * 0.3 + 0.2);
+      osc.start(ctx.currentTime + i * 0.3); osc.stop(ctx.currentTime + i * 0.3 + 0.2);
+    });
+  } catch (e) {}
+}
+function notify(title, body) {
+  if ('Notification' in window && Notification.permission === 'granted') {
+    try { new Notification(title, { body }); } catch (e) {}
+  }
+}
+async function fireWebhook(c) {
+  if (!settings.webhookUrl || !settings.autoWebhook) return;
+  const last = c.lactateHistory[c.lactateHistory.length - 1];
+  try {
+    await fetch(settings.webhookUrl, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        event: 'relactate_overdue', patientId: c.patientId, age: c.age, sex: c.sex, source: c.source,
+        tZero: new Date(c.tZero).toISOString(), lactateValue: last.value, lactateTime: new Date(last.time).toISOString(),
+        message: buildSmsMsg(c), phones: contacts.map(ct => cleanPhone(ct.phone))
+      })
+    });
+  } catch (e) { console.error('webhook failed', e); }
+}
+
+/* ---------- Render: triple timers ---------- */
+function timerBoxHtml(label, elapsedMs, targetMin, doneTs, pendingAction, caseId) {
+  const elapsedMinVal = Math.round(elapsedMs / 60000);
+  if (doneTs) {
+    return '<div class="timer-box done"><div class="timer-box-label">✓ ' + label + '</div><div class="timer-box-value">' + fmtElapsed(elapsedMinVal) + '</div><div class="timer-box-meta">Feito às ' + fmtHM(doneTs) + '</div></div>';
+  }
+  const pct = elapsedMinVal / targetMin;
+  const cls = pct >= 1 ? 'red' : pct >= 0.75 ? 'amber' : 'green';
+  const clickAttr = pendingAction ? ' data-action="' + pendingAction + '" data-case="' + caseId + '"' : '';
+  const extraCls = pendingAction ? ' pending' : '';
+  return '<div class="timer-box ' + cls + extraCls + '"' + clickAttr + '><div class="timer-box-label">⏱ ' + label + '</div><div class="timer-box-value" data-timer-elapsed="' + elapsedMs + '" data-timer-start="' + (Date.now() - elapsedMs) + '">' + fmtElapsed(elapsedMinVal) + '</div><div class="timer-box-meta">Meta: ' + targetMin + 'min' + (pendingAction ? ' · clique para marcar' : '') + '</div></div>';
+}
+
+function lactateBanner(c) {
+  c.lactateHistory = c.lactateHistory || [];
+  if (!c.lactateHistory.length) {
+    return '<div class="lactate-banner amber" data-action="lactate-new" data-case="' + c.id + '"><div class="lactate-info"><span class="lactate-info-label">Lactato inicial pendente</span><span>Clique para registrar valor</span></div><span style="font-size:20px;">🧪</span></div>';
+  }
+  const last = c.lactateHistory[c.lactateHistory.length - 1];
+  const history = c.lactateHistory.map(l => l.value + ' (' + fmtHM(l.time) + ')').join(' → ');
+  if (last.value < 2) {
+    return '<div class="lactate-banner ok"><div class="lactate-info"><span class="lactate-info-label">Lactato normalizado · sem recoleta indicada</span><span>Histórico: ' + history + ' mmol/L</span></div><span style="font-size:20px;">✅</span></div>';
+  }
+  const due = last.time + settings.intervalHours * 3600000;
+  const remainMs = due - Date.now();
+  const remainMin = Math.round(remainMs / 60000);
+  let cls, label;
+  if (remainMs <= 0) { cls = 'red'; label = 'ATRASADA há ' + fmtCountdown(remainMs); }
+  else if (remainMin < 15) { cls = 'red'; label = 'em ' + fmtCountdown(remainMs); }
+  else if (remainMin < 30) { cls = 'amber'; label = 'em ' + fmtCountdown(remainMs); }
+  else { cls = 'green'; label = 'em ' + fmtCountdown(remainMs); }
+  return '<div class="lactate-banner ' + cls + '" data-action="lactate-new" data-case="' + c.id + '" data-due="' + due + '"><div class="lactate-info"><span class="lactate-info-label">Último: ' + last.value + ' mmol/L às ' + fmtHM(last.time) + ' · ' + history + '</span><span>Recoleta de lactato</span></div><span class="lactate-countdown" data-due="' + due + '">' + label + '</span></div>';
+}
+
+function notifyPanel(c) {
+  if (!notifyOpen.has(c.id)) return '';
+  const sms = buildSmsMsg(c);
+  const wa = buildWaMsg(c);
+  const smsEnc = encodeURIComponent(sms);
+  const waEnc = encodeURIComponent(wa);
+  let contactsHtml = '';
+  if (contacts.length === 0) {
+    contactsHtml = '<p style="color:#6b7280; margin:0;">Nenhum contato cadastrado. Clique em "Equipe" no topo.</p>';
+  } else {
+    contactsHtml = contacts.map(ct => {
+      const ph = cleanPhone(ct.phone);
+      return '<div class="notify-contact"><div><div style="font-weight:700;color:#fff">' + escapeHtml(ct.name) + '</div><div style="font-size:11px;color:#9ca3af">' + escapeHtml(ct.role) + ' · ' + escapeHtml(ct.phone) + '</div></div><div class="notify-contact-actions"><a class="btn btn-sm btn-wa" href="https://wa.me/' + ph + '?text=' + waEnc + '" target="_blank" rel="noopener">WhatsApp</a><a class="btn btn-sm btn-sms" href="sms:+' + ph + '?body=' + smsEnc + '">SMS</a></div></div>';
+    }).join('');
+  }
+  return '<div class="notify-panel"><div style="font-weight:700;margin-bottom:8px;font-size:13px;color:#fff">📣 Avisar equipe</div><div style="font-size:11px;color:#9ca3af;margin-bottom:4px">Mensagem SMS</div><div class="notify-msg">' + escapeHtml(sms) + '</div><button class="btn btn-sm" data-action="copy-msg" data-msg="' + escapeHtml(sms) + '" style="margin-bottom:10px">📋 Copiar SMS</button> <button class="btn btn-sm" data-action="copy-msg" data-msg="' + escapeHtml(wa) + '">📋 Copiar WhatsApp</button><div class="notify-contacts" style="margin-top:10px">' + contactsHtml + '</div>' + (settings.webhookUrl ? '<button class="btn btn-sm btn-primary" data-action="fire-webhook" data-case="' + c.id + '" style="margin-top:10px">📡 Disparar webhook agora</button>' : '') + '</div>';
+}
+
+function renderTopAlert() {
+  const overdue = cases.filter(c => { if (c.status !== 'open') return false; const d = nextRelactateDue(c); return d && d <= Date.now(); });
+  const upcoming = cases.filter(c => { if (c.status !== 'open') return false; const d = nextRelactateDue(c); return d && d > Date.now() && d - Date.now() < 15*60000; });
+  const atbOverdue = cases.filter(c => c.status === 'open' && !c.bundle.antibiotic && elapsedMin(c.tZero) > settings.atbTargetMin);
+  const el = document.getElementById('top-alert');
+  if (!overdue.length && !upcoming.length && !atbOverdue.length) { el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  let html = '<div class="top-alert-title">⚠️ Alertas críticos ativos</div><div class="top-alert-list">';
+  const parts = [];
+  if (atbOverdue.length) parts.push('<strong>' + atbOverdue.length + ' sem ATB além da meta:</strong> ' + atbOverdue.map(c => escapeHtml(c.patientId)).join(', '));
+  if (overdue.length) parts.push('<strong>' + overdue.length + ' recoleta(s) atrasada(s):</strong> ' + overdue.map(c => { const d = nextRelactateDue(c); return escapeHtml(c.patientId) + ' (há ' + fmtCountdown(d - Date.now()) + ')'; }).join(', '));
+  if (upcoming.length) parts.push('<strong>' + upcoming.length + ' recoleta(s) em &lt;15min:</strong> ' + upcoming.map(c => { const d = nextRelactateDue(c); return escapeHtml(c.patientId) + ' (em ' + fmtCountdown(d - Date.now()) + ')'; }).join(', '));
+  html += parts.join('<br>') + '</div>';
+  el.innerHTML = html;
+}
+
+function renderStats() {
+  const open = cases.filter(c => c.status === 'open');
+  const mStart = new Date(); mStart.setDate(1); mStart.setHours(0,0,0,0);
+  const month = cases.filter(c => c.tZero >= mStart.getTime());
+  const atb = month.filter(c => c.bundle.antibiotic).map(c => (c.bundle.antibiotic - c.tZero)/60000);
+  const avgAtb = atb.length ? Math.round(atb.reduce((a,b)=>a+b,0)/atb.length) : 0;
+  const closed = month.filter(c => c.status === 'closed');
+  const full = closed.filter(c => c.bundle.exams && c.bundle.antibiotic && c.bundle.fluid).length;
+  const adh = closed.length ? Math.round((full/closed.length)*100) : 0;
+  const mort = closed.length ? Math.round((closed.filter(c => c.outcome === 'Óbito').length/closed.length)*100) : 0;
+  const ac = avgAtb === 0 ? '#6b7280' : (avgAtb > settings.atbTargetMin ? '#ef4444' : '#22c55e');
+  document.getElementById('stats').innerHTML =
+    '<div class="stat-card" style="--accent:#ef4444"><div class="stat-label">Abertos agora</div><div class="stat-value">' + open.length + '</div><div class="stat-meta">Em monitoramento ativo</div></div>' +
+    '<div class="stat-card" style="--accent:' + ac + '"><div class="stat-label">Tempo médio até ATB</div><div class="stat-value" style="color:' + ac + '">' + avgAtb + '<span class="stat-unit"> min</span></div><div class="stat-meta">Meta ≤' + settings.atbTargetMin + 'min · mês atual</div></div>' +
+    '<div class="stat-card" style="--accent:#3b82f6"><div class="stat-label">Adesão ao pacote</div><div class="stat-value">' + adh + '<span class="stat-unit">%</span></div><div class="stat-meta">' + full + ' de ' + closed.length + ' casos</div></div>' +
+    '<div class="stat-card" style="--accent:#a855f7"><div class="stat-label">Mortalidade</div><div class="stat-value">' + mort + '<span class="stat-unit">%</span></div><div class="stat-meta">' + closed.length + ' casos no mês</div></div>';
+}
+
+function renderActive() {
+  const open = cases.filter(c => c.status === 'open').sort((a,b) => a.tZero - b.tZero);
+  document.getElementById('open-count').textContent = open.length ? '(' + open.length + ')' : '';
+  const list = document.getElementById('active-list');
+  if (!open.length) { list.innerHTML = '<div class="empty">Nenhum protocolo aberto no momento.</div>'; return; }
+  list.innerHTML = open.map(c => {
+    const openMin = elapsedMin(c.tZero);
+    const due = nextRelactateDue(c);
+    const lactateUrgent = due && due <= Date.now();
+    const atbUrgent = !c.bundle.antibiotic && openMin > settings.atbTargetMin;
+    const examUrgent = !c.bundle.exams && openMin > settings.examTargetMin;
+    const severity = (lactateUrgent || atbUrgent) ? 'sev-high' : (examUrgent || openMin > settings.examTargetMin * 0.75) ? 'sev-mid' : 'sev-low';
+    const showNotify = due && (due - Date.now()) < 15*60000;
+
+    const t1 = timerBoxHtml('Abertura', Date.now() - c.tZero, 999999, null, null, c.id);
+    const t2 = c.bundle.exams
+      ? timerBoxHtml('Coleta exames', c.bundle.exams - c.tZero, settings.examTargetMin, c.bundle.exams, null, c.id)
+      : timerBoxHtml('Coleta exames', Date.now() - c.tZero, settings.examTargetMin, null, 'mark-exams', c.id);
+    const t3 = c.bundle.antibiotic
+      ? timerBoxHtml('ATB administrado', c.bundle.antibiotic - c.tZero, settings.atbTargetMin, c.bundle.antibiotic, null, c.id)
+      : timerBoxHtml('Até ATB', Date.now() - c.tZero, settings.atbTargetMin, null, 'mark-atb', c.id);
+
+    const chips = BUNDLE_ITEMS.map(item => {
+      const done = c.bundle[item.key];
+      return '<button class="bundle-chip ' + (done ? 'done' : '') + '" data-action="bundle" data-case="' + c.id + '" data-item="' + item.key + '">' + (done ? '✓ ' : '') + item.label + (done ? ' · ' + fmtHM(done) : '') + '</button>';
+    }).join('');
+
+    return '<div class="case-card ' + severity + '">' +
+      '<div class="case-header"><div><span class="case-id">' + escapeHtml(c.patientId) + '</span><span class="case-criteria-badge">' + escapeHtml(c.criteria) + '</span><div class="case-meta">' + c.age + 'a · ' + c.sex + ' · ' + escapeHtml(c.source) + ' · T zero ' + fmtTime(c.tZero) + '</div></div></div>' +
+      '<div class="timers-row">' + t1 + t2 + t3 + '</div>' +
+      lactateBanner(c) +
+      '<div class="bundle-row">' + chips + '</div>' +
+      '<div class="case-actions">' +
+      (showNotify ? '<button class="btn btn-sm btn-alert" data-action="toggle-notify" data-case="' + c.id + '">💬 ' + (notifyOpen.has(c.id) ? 'Fechar avisos' : 'Avisar equipe') + '</button>' : '') +
+      '<button class="btn btn-sm" data-action="close" data-case="' + c.id + '">Fechar protocolo</button>' +
+      '<button class="btn btn-sm" data-action="delete" data-case="' + c.id + '">Excluir</button>' +
+      '</div>' + notifyPanel(c) + '</div>';
+  }).join('');
+}
+
+function renderClosed() {
+  const closed = cases.filter(c => c.status === 'closed').sort((a,b) => b.closedAt - a.closedAt).slice(0, 8);
+  const list = document.getElementById('closed-list');
+  if (!closed.length) { list.innerHTML = '<div class="empty">Nenhum caso fechado ainda.</div>'; return; }
+  list.innerHTML = closed.map(c => {
+    const atbMin = c.bundle.antibiotic ? Math.round((c.bundle.antibiotic - c.tZero)/60000) : null;
+    const examMin = c.bundle.exams ? Math.round((c.bundle.exams - c.tZero)/60000) : null;
+    const os = c.outcome === 'Óbito' ? 'background:rgba(239,68,68,0.15);color:#f87171;' : 'background:#374151;color:#9ca3af;';
+    const lact = (c.lactateHistory && c.lactateHistory.length) ? ' · lactato: ' + c.lactateHistory.map(l => l.value).join('→') : '';
+    return '<div class="case-card sev-low" style="border-left-color:#4b5563;"><div class="case-header"><div><span class="case-id">' + escapeHtml(c.patientId) + '</span><div class="case-meta">' + c.age + 'a · ' + escapeHtml(c.source) + ' · T0 ' + fmtTime(c.tZero) + ' · exames em ' + (examMin !== null ? examMin+'min' : '—') + ' · ATB em ' + (atbMin !== null ? atbMin + 'min' : '—') + lact + '</div></div><span class="outcome-badge" style="' + os + '">' + escapeHtml(c.outcome || '—') + '</span></div></div>';
+  }).join('');
+}
+
+function renderContacts() {
+  const list = document.getElementById('contacts-list');
+  if (!contacts.length) { list.innerHTML = '<p style="color:#6b7280; font-size:13px; margin:0;">Nenhum contato cadastrado.</p>'; return; }
+  list.innerHTML = contacts.map(ct => '<div class="contact-row"><div class="contact-info"><div class="contact-name">' + escapeHtml(ct.name) + '</div><div class="contact-meta">' + escapeHtml(ct.role) + ' · ' + escapeHtml(ct.phone) + '</div></div><button class="btn btn-sm" data-action="del-contact" data-id="' + ct.id + '">Remover</button></div>').join('');
+}
+
+function render() { renderTopAlert(); renderStats(); renderActive(); renderClosed(); renderContacts(); }
+
+function tickClock() {
+  const now = new Date();
+  document.getElementById('clock-now').textContent = now.toLocaleTimeString('pt-BR');
+  document.getElementById('clock-date').textContent = now.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function tick() {
+  tickClock();
+  document.querySelectorAll('.timer-box-value[data-timer-start]').forEach(el => {
+    const start = parseInt(el.dataset.timerStart);
+    const min = elapsedMin(start);
+    el.textContent = fmtElapsed(min);
+    const box = el.closest('.timer-box');
+    if (box && !box.classList.contains('done')) {
+      const metaEl = box.querySelector('.timer-box-meta');
+      const targetText = metaEl ? metaEl.textContent : '';
+      const targetMatch = targetText.match(/(\d+)min/);
+      if (targetMatch) {
+        const target = parseInt(targetMatch[1]);
+        const pct = min / target;
+        const cls = pct >= 1 ? 'red' : pct >= 0.75 ? 'amber' : 'green';
+        const isPending = box.classList.contains('pending');
+        box.className = 'timer-box ' + cls + (isPending ? ' pending' : '');
+      }
+    }
+  });
+  document.querySelectorAll('.lactate-countdown[data-due]').forEach(el => {
+    const due = parseInt(el.dataset.due); const remainMs = due - Date.now();
+    const remainMin = Math.round(remainMs / 60000);
+    const banner = el.closest('.lactate-banner');
+    const cls = remainMs <= 0 ? 'red' : remainMin < 15 ? 'red' : remainMin < 30 ? 'amber' : 'green';
+    banner.className = 'lactate-banner ' + cls;
+    el.textContent = (remainMs <= 0 ? 'ATRASADA há ' : 'em ') + fmtCountdown(remainMs);
+  });
+  let needsFullRerender = false;
+  cases.filter(c => c.status === 'open').forEach(c => {
+    const due = nextRelactateDue(c);
+    if (due && due <= Date.now() && !alertedCases.has(c.id)) {
+      alertedCases.add(c.id);
+      playAlert();
+      notify('Recoleta de lactato', c.patientId + ' — prazo vencido');
+      fireWebhook(c);
+      needsFullRerender = true;
+    }
+  });
+  renderTopAlert();
+  if (needsFullRerender) renderActive();
+}
+
+document.addEventListener('click', async (e) => {
+  const t = e.target.closest('[data-action]');
+  if (!t) return;
+  e.preventDefault();
+  const action = t.dataset.action;
+  const id = t.dataset.case;
+  const c = id ? cases.find(x => x.id === id) : null;
+
+  if (action === 'bundle' && c) {
+    const item = t.dataset.item;
+    if (c.bundle[item]) { if (confirm('Desmarcar?')) c.bundle[item] = null; }
+    else c.bundle[item] = Date.now();
+    render(); await saveCaso(c);
+  } else if (action === 'mark-exams' && c) {
+    if (confirm('Confirmar coleta de exames (hemoculturas/lactato) agora?')) {
+      c.bundle.exams = Date.now();
+      render(); await saveCaso(c);
+    }
+  } else if (action === 'mark-atb' && c) {
+    if (confirm('Confirmar administração do antibiótico agora?')) {
+      c.bundle.antibiotic = Date.now();
+      render(); await saveCaso(c);
+    }
+  } else if (action === 'lactate-new' && c) {
+    const v = prompt('Valor do lactato (mmol/L):', '');
+    if (v === null) return;
+    const val = parseFloat(String(v).replace(',', '.'));
+    if (isNaN(val) || val < 0 || val > 30) { alert('Valor inválido. Use um número entre 0 e 30.'); return; }
+    c.lactateHistory.push({ time: Date.now(), value: val });
+    if (!c.bundle.exams) c.bundle.exams = Date.now();
+    alertedCases.delete(c.id);
+    render(); await saveCaso(c);
+  } else if (action === 'toggle-notify' && c) {
+    if (notifyOpen.has(c.id)) notifyOpen.delete(c.id); else notifyOpen.add(c.id);
+    render();
+  } else if (action === 'copy-msg') {
+    navigator.clipboard.writeText(t.dataset.msg).then(() => { t.innerHTML = '✓ Copiado'; setTimeout(() => render(), 1200); });
+  } else if (action === 'fire-webhook' && c) {
+    await fireWebhook(c); t.innerHTML = '✓ Webhook enviado';
+  } else if (action === 'close' && c) {
+    const o = prompt('Desfecho: Internado / Alta / Transferido / Óbito', 'Internado');
+    if (o) { c.status = 'closed'; c.outcome = o; c.closedAt = Date.now(); render(); await saveCaso(c); }
+  } else if (action === 'delete' && c) {
+    if (confirm('Excluir este caso permanentemente?')) { cases = cases.filter(x => x.id !== id); render(); await deleteCasoApi(id); }
+  } else if (action === 'del-contact') {
+    contacts = contacts.filter(x => x.id !== t.dataset.id);
+    renderContacts(); await deleteContatoApi(t.dataset.id);
+  }
+});
+
+document.getElementById('addBtn').addEventListener('click', () => {
+  const f = document.getElementById('addForm');
+  f.style.display = f.style.display === 'none' ? 'block' : 'none';
+  if (f.style.display === 'block') document.getElementById('f-tzero').value = nowLocal();
+});
+document.getElementById('cancelBtn').addEventListener('click', () => { document.getElementById('addForm').style.display = 'none'; });
+document.getElementById('teamBtn').addEventListener('click', () => { const p = document.getElementById('team-panel'); p.style.display = p.style.display === 'none' ? 'block' : 'none'; });
+document.getElementById('cfgBtn').addEventListener('click', () => {
+  const p = document.getElementById('cfg-panel');
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+  if (p.style.display === 'block') {
+    document.getElementById('api-url').value = settings.apiUrl || '';
+    document.getElementById('interval-select').value = settings.intervalHours;
+    document.getElementById('exam-target').value = settings.examTargetMin;
+    document.getElementById('atb-target').value = settings.atbTargetMin;
+    document.getElementById('sound-select').value = settings.soundOn ? '1' : '0';
+    document.getElementById('webhook-url').value = settings.webhookUrl || '';
+    document.getElementById('auto-webhook').checked = !!settings.autoWebhook;
+  }
+});
+document.getElementById('cfg-save').addEventListener('click', async () => {
+  const newApiUrl = document.getElementById('api-url').value.trim();
+  const apiUrlChanged = newApiUrl !== settings.apiUrl;
+  settings.apiUrl = newApiUrl;
+  settings.intervalHours = parseInt(document.getElementById('interval-select').value);
+  settings.examTargetMin = parseInt(document.getElementById('exam-target').value);
+  settings.atbTargetMin = parseInt(document.getElementById('atb-target').value);
+  settings.soundOn = document.getElementById('sound-select').value === '1';
+  settings.webhookUrl = document.getElementById('webhook-url').value.trim();
+  settings.autoWebhook = document.getElementById('auto-webhook').checked;
+  alertedCases.clear();
+  saveSettingsLocal();
+  document.getElementById('cfg-panel').style.display = 'none';
+  if (apiUrlChanged) await loadAll();
+  render();
+});
+
+document.getElementById('ct-add').addEventListener('click', async () => {
+  const name = document.getElementById('ct-name').value.trim();
+  const role = document.getElementById('ct-role').value.trim() || 'Equipe';
+  const phone = document.getElementById('ct-phone').value.trim();
+  if (!name || !phone) { alert('Preencha nome e telefone.'); return; }
+  const ct = { id: uid(), name, role, phone };
+  contacts.push(ct);
+  renderContacts();
+  document.getElementById('ct-name').value = '';
+  document.getElementById('ct-role').value = '';
+  document.getElementById('ct-phone').value = '';
+  await saveContatoApi(ct);
+});
+
+document.getElementById('saveBtn').addEventListener('click', async () => {
+  const patientId = document.getElementById('f-id').value.trim() || 'Sem ID';
+  const age = parseInt(document.getElementById('f-age').value) || 0;
+  const sex = document.getElementById('f-sex').value;
+  const source = document.getElementById('f-source').value;
+  const criteria = document.getElementById('f-criteria').value;
+  const tzeroStr = document.getElementById('f-tzero').value;
+  const tZero = tzeroStr ? new Date(tzeroStr).getTime() : Date.now();
+  const novoCaso = { id: uid(), patientId, age, sex, source, criteria, tZero, status: 'open', bundle: { exams: null, antibiotic: null, fluid: null, vasopressor: null }, lactateHistory: [], outcome: null, closedAt: null };
+  cases.push(novoCaso);
+  document.getElementById('f-id').value = '';
+  document.getElementById('f-age').value = '';
+  document.getElementById('addForm').style.display = 'none';
+  render();
+  await saveCaso(novoCaso);
+});
+
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const rows = [['ID','Paciente','Idade','Sexo','Foco','Criterio','T zero','Lactatos','Exames','ATB','Cristaloide','Vasopressor','MinExames','MinATB','Status','Desfecho','Fechado']];
+  cases.forEach(c => {
+    const lacts = (c.lactateHistory || []).map(l => l.value + '@' + fmtTime(l.time)).join(' | ');
+    rows.push([c.id, c.patientId, c.age, c.sex, c.source, c.criteria, fmtTime(c.tZero), lacts, fmtTime(c.bundle.exams), fmtTime(c.bundle.antibiotic), fmtTime(c.bundle.fluid), fmtTime(c.bundle.vasopressor), c.bundle.exams ? Math.round((c.bundle.exams - c.tZero)/60000) : '', c.bundle.antibiotic ? Math.round((c.bundle.antibiotic - c.tZero)/60000) : '', c.status, c.outcome || '', c.closedAt ? fmtTime(c.closedAt) : '']);
+  });
+  const csv = rows.map(r => r.map(v => '"' + String(v).replace(/"/g,'""') + '"').join(',')).join('\n');
+  const blob = new Blob(['\uFEFF' + csv], {type: 'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'dashboard_sepse.csv'; a.click();
+  URL.revokeObjectURL(url);
+});
+
+document.getElementById('refreshBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('refreshBtn');
+  btn.textContent = '🔄 Atualizando...';
+  await loadAll(); render();
+  btn.textContent = '🔄 Atualizar';
+});
+
+document.getElementById('notifyBtn').addEventListener('click', async () => {
+  if (!('Notification' in window)) { alert('Este navegador não suporta notificações.'); return; }
+  const perm = await Notification.requestPermission();
+  document.getElementById('notifyBtn').innerHTML = perm === 'granted' ? '✓ Ativas' : '🔕 Bloqueadas';
+});
+
+(async () => {
+  loadSettings();
+  tickClock();
+  await loadAll();
+  render();
+  setInterval(tick, 1000);
+  setInterval(async () => {
+    if (isSyncing) return;
+    isSyncing = true;
+    await loadAll();
+    render();
+    isSyncing = false;
+  }, 15000);
+})();
+</script>
+</body>
+</html>
